@@ -69,12 +69,14 @@ func TestNextElementSibling(t *testing.T) {
 	li[2] = NextElementSibling(li[1])
 
 	for i, e := range li {
-		if e.FirstChild.Type != html.TextNode {
-			t.Error("Expected text node")
-		}
+		text := FirstNodeByType(e, html.TextNode)
 		expect := fmt.Sprintf("Sibling %d", i+1)
-		if e.FirstChild.Data != expect {
-			t.Errorf("Expected \"%s\", got \"%s\"", expect, e.FirstChild.Data)
+		if text == nil {
+			t.Error("Expected text node")
+			continue
+		}
+		if text.Data != expect {
+			t.Errorf("Expected \"%s\", got \"%s\"", expect, text.Data)
 		}
 	}
 }
@@ -95,12 +97,14 @@ func TestElementsByAttrMatch(t *testing.T) {
 		t.Errorf("Expected %d matches, got %d", matches, len(res))
 	}
 	for i, e := range res {
-		if e.FirstChild.Type != html.TextNode {
-			t.Error("Expected text node")
-		}
+		text := FirstNodeByType(e, html.TextNode)
 		expect := fmt.Sprintf("Match %d", i+1)
-		if e.FirstChild.Data != expect {
-			t.Errorf("Expected \"%s\", got \"%s\"", expect, e.FirstChild.Data)
+		if text == nil {
+			t.Error("Expected text node")
+			continue
+		}
+		if text.Data != expect {
+			t.Errorf("Expected \"%s\", got \"%s\"", expect, text.Data)
 		}
 	}
 }

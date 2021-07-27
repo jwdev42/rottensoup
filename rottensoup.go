@@ -65,12 +65,27 @@ func ElementByID(n *html.Node, id string) *html.Node {
 	return elem
 }
 
+//Returns the first child node of n that matches NodeType t or nil if no such node was found.
+func FirstNodeByType(n *html.Node, t html.NodeType) *html.Node {
+	var match *html.Node
+	pre := func(n *html.Node) bool {
+		if n.Type == t {
+			match = n
+			return false
+		}
+		return true
+	}
+	walkTree(n, pre, nil)
+	return match
+}
+
 func ElementsByAttrMatch(n *html.Node, key string, val *regexp.Regexp) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
 	walkTree(n, matchAttrVal(&nodes, key, val), nil)
 	return nodes
 }
 
+//Returns the first child node of n that matches tag tag.
 func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
 	elements := ElementsByTag(n, tag...)
 	if len(elements) < 1 {
@@ -79,6 +94,7 @@ func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
 	return elements[0]
 }
 
+//Returns all child nodes of n that match tag tag.
 func ElementsByTag(n *html.Node, tag ...atom.Atom) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
 	pre := func(n *html.Node) bool {
@@ -94,10 +110,11 @@ func ElementsByTag(n *html.Node, tag ...atom.Atom) []*html.Node {
 	return nodes
 }
 
-func ElementsByTagAndAttr(n *html.Node, id string, attr ...html.Attribute) []*html.Node {
+//Returns all child nodes of n that match tag tag and contain all attributes in attr.
+func ElementsByTagAndAttr(n *html.Node, tag atom.Atom, attr ...html.Attribute) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
 	pre := func(n *html.Node) bool {
-		if n.Type == html.ElementNode && n.Data == id {
+		if n.Type == html.ElementNode && n.DataAtom == tag {
 			for _, a := range attr {
 				found := false
 				for _, na := range n.Attr {
@@ -118,22 +135,24 @@ func ElementsByTagAndAttr(n *html.Node, id string, attr ...html.Attribute) []*ht
 	return nodes
 }
 
-func HasAttr(node *html.Node, attribute string) bool {
-	for _, attr := range node.Attr {
-		if attr.Key == attribute {
+//Returns true if Node n has an attribute with key key, returns false otherwise.
+func HasAttr(n *html.Node, key string) bool {
+	for _, attr := range n.Attr {
+		if attr.Key == key {
 			return true
 		}
 	}
 	return false
 }
 
-func MatchAttrs(node *html.Node, attr ...html.Attribute) bool {
+//Returns true if Node n contains all attributes that are passed to attr, returns false otherwise.
+func MatchAttrs(n *html.Node, attr ...html.Attribute) bool {
 	attrs_to_match := make(map[html.Attribute]bool)
 	for _, a := range attr {
 		attrs_to_match[a] = false
 	}
 
-	for _, a := range node.Attr {
+	for _, a := range n.Attr {
 		if _, ok := attrs_to_match[a]; ok {
 			attrs_to_match[a] = true
 		}
@@ -147,8 +166,9 @@ func MatchAttrs(node *html.Node, attr ...html.Attribute) bool {
 	return true
 }
 
-func NextSiblingByTag(node *html.Node, tag atom.Atom) *html.Node {
-	sibl := node.NextSibling
+//Returns the node's next sibling which tag matches tag. Returns nil if no such node was found.
+func NextSiblingByTag(n *html.Node, tag atom.Atom) *html.Node {
+	sibl := n.NextSibling
 	if sibl == nil {
 		return nil
 	}
@@ -158,9 +178,9 @@ func NextSiblingByTag(node *html.Node, tag atom.Atom) *html.Node {
 	return NextSiblingByTag(sibl, tag)
 }
 
-//Returns the node's next sibling that is an element. Returns nil if no element was found.
-func NextElementSibling(node *html.Node) *html.Node {
-	sibl := node.NextSibling
+//Returns the node's next sibling that is an element. Returns nil if no such element was found.
+func NextElementSibling(n *html.Node) *html.Node {
+	sibl := n.NextSibling
 	if sibl == nil {
 		return nil
 	}
