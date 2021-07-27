@@ -68,8 +68,7 @@ func TestNextElementSibling(t *testing.T) {
 	li[1] = NextElementSibling(li[0])
 	li[2] = NextElementSibling(li[1])
 
-	for i := 0; i < 3; i++ {
-		e := li[i]
+	for i, e := range li {
 		if e.FirstChild.Type != html.TextNode {
 			t.Error("Expected text node")
 		}
@@ -81,6 +80,7 @@ func TestNextElementSibling(t *testing.T) {
 }
 
 func TestElementsByAttrMatch(t *testing.T) {
+	const matches = 4
 	const testDoc = "attr_match.html"
 
 	search := regexp.MustCompile("caption-[a-z]+")
@@ -91,7 +91,16 @@ func TestElementsByAttrMatch(t *testing.T) {
 	}
 
 	res := ElementsByAttrMatch(root, "class", search)
-	if len(res) != 3 {
-		t.Errorf("Expected 3 matches, got %d", len(res))
+	if len(res) != matches {
+		t.Errorf("Expected %d matches, got %d", matches, len(res))
+	}
+	for i, e := range res {
+		if e.FirstChild.Type != html.TextNode {
+			t.Error("Expected text node")
+		}
+		expect := fmt.Sprintf("Match %d", i+1)
+		if e.FirstChild.Data != expect {
+			t.Errorf("Expected \"%s\", got \"%s\"", expect, e.FirstChild.Data)
+		}
 	}
 }
