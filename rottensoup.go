@@ -41,15 +41,17 @@ func matchAttrVal(nodes *[]*html.Node, key string, val *regexp.Regexp) func(n *h
 
 //END: Functions to be used as pre or post with walktree*
 
-func AttrVal(node *html.Node, attribute string) string {
-	for _, attr := range node.Attr {
-		if attr.Key == attribute {
+//Returns the attribute value for node n's attribute referenced by key key. Returns an empty string if no such attribute exists.
+func AttrVal(n *html.Node, key string) string {
+	for _, attr := range n.Attr {
+		if attr.Key == key {
 			return attr.Val
 		}
 	}
 	return ""
 }
 
+//Returns the first child node of n that has an id attribute that matches the given id string. Returns nil if no such node exists.
 func ElementByID(n *html.Node, id string) *html.Node {
 	var elem *html.Node
 	byID := func(n *html.Node) bool {
@@ -85,16 +87,26 @@ func ElementsByAttrMatch(n *html.Node, key string, val *regexp.Regexp) []*html.N
 	return nodes
 }
 
-//Returns the first child node of n that matches tag tag.
+//Returns the first child node of n that matches at least one of the given tags.
 func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
-	elements := ElementsByTag(n, tag...)
-	if len(elements) < 1 {
-		return nil
+	var node *html.Node
+	pre := func(n *html.Node) bool {
+		if n.Type != html.ElementNode {
+			return true
+		}
+		for _, v := range tag {
+			if n.DataAtom == v {
+				node = n
+				return false
+			}
+		}
+		return true
 	}
-	return elements[0]
+	walkTree(n, pre, nil)
+	return node
 }
 
-//Returns all child nodes of n that match tag tag.
+//Returns all child nodes of n that match at least one of the given tags.
 func ElementsByTag(n *html.Node, tag ...atom.Atom) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
 	pre := func(n *html.Node) bool {
