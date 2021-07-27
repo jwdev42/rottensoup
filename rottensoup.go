@@ -3,43 +3,12 @@
 package rottensoup
 
 import (
+	"github.com/jwdev42/rottensoup/internal/cond"
+	"github.com/jwdev42/rottensoup/internal/nav"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"regexp"
 )
-
-func walkTree(n *html.Node, pre, post func(*html.Node) bool) bool {
-	if pre != nil && !pre(n) {
-		return false
-	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if !walkTree(c, pre, post) {
-			return false
-		}
-	}
-	if post != nil && !post(n) {
-		return false
-	}
-	return true
-}
-
-//BEGIN: Functions to be used as pre or post with walktree
-
-//matchAttrVal add Node n and child nodes to the nodecollection nc if the regex val matches
-//the value of the attribute specified with key
-func matchAttrVal(nodes *[]*html.Node, key string, val *regexp.Regexp) func(n *html.Node) bool {
-	return func(node *html.Node) bool {
-		for _, a := range node.Attr {
-			if a.Key == key && val.MatchString(a.Val) {
-				*nodes = append(*nodes, node)
-				return true
-			}
-		}
-		return true
-	}
-}
-
-//END: Functions to be used as pre or post with walktree*
 
 //Returns the attribute value for node n's attribute referenced by key key. Returns an empty string if no such attribute exists.
 func AttrVal(n *html.Node, key string) string {
@@ -63,7 +32,7 @@ func ElementByID(n *html.Node, id string) *html.Node {
 		}
 		return true
 	}
-	walkTree(n, byID, nil)
+	nav.DFS(n, byID, nil)
 	return elem
 }
 
@@ -77,13 +46,13 @@ func FirstNodeByType(n *html.Node, t html.NodeType) *html.Node {
 		}
 		return true
 	}
-	walkTree(n, pre, nil)
+	nav.DFS(n, pre, nil)
 	return match
 }
 
 func ElementsByAttrMatch(n *html.Node, key string, val *regexp.Regexp) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
-	walkTree(n, matchAttrVal(&nodes, key, val), nil)
+	nav.DFS(n, cond.AttrValByRegex(&nodes, key, val), nil)
 	return nodes
 }
 
@@ -102,7 +71,7 @@ func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
 		}
 		return true
 	}
-	walkTree(n, pre, nil)
+	nav.DFS(n, pre, nil)
 	return node
 }
 
@@ -118,7 +87,7 @@ func ElementsByTag(n *html.Node, tag ...atom.Atom) []*html.Node {
 		}
 		return true
 	}
-	walkTree(n, pre, nil)
+	nav.DFS(n, pre, nil)
 	return nodes
 }
 
@@ -143,7 +112,7 @@ func ElementsByTagAndAttr(n *html.Node, tag atom.Atom, attr ...html.Attribute) [
 		}
 		return true
 	}
-	walkTree(n, pre, nil)
+	nav.DFS(n, pre, nil)
 	return nodes
 }
 
