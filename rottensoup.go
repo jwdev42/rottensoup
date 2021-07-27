@@ -8,10 +8,6 @@ import (
 	"regexp"
 )
 
-type nodecollection struct {
-	nodes []*html.Node
-}
-
 func walkTree(n *html.Node, pre, post func(*html.Node) bool) bool {
 	if pre != nil && !pre(n) {
 		return false
@@ -31,11 +27,11 @@ func walkTree(n *html.Node, pre, post func(*html.Node) bool) bool {
 
 //matchAttrVal add Node n and child nodes to the nodecollection nc if the regex val matches
 //the value of the attribute specified with key
-func matchAttrVal(nc *nodecollection, key string, val *regexp.Regexp) func(n *html.Node) bool {
+func matchAttrVal(nodes *[]*html.Node, key string, val *regexp.Regexp) func(n *html.Node) bool {
 	return func(node *html.Node) bool {
 		for _, a := range node.Attr {
 			if a.Key == key && val.MatchString(a.Val) {
-				nc.nodes = append(nc.nodes, node)
+				*nodes = append(*nodes, node)
 				return true
 			}
 		}
@@ -70,9 +66,9 @@ func ElementByID(n *html.Node, id string) *html.Node {
 }
 
 func ElementsByAttrMatch(n *html.Node, key string, val *regexp.Regexp) []*html.Node {
-	nc := &nodecollection{nodes: make([]*html.Node, 0, 25)}
-	walkTree(n, matchAttrVal(nc, key, val), nil)
-	return nc.nodes
+	nodes := make([]*html.Node, 0, 10)
+	walkTree(n, matchAttrVal(&nodes, key, val), nil)
+	return nodes
 }
 
 func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
