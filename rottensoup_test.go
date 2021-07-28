@@ -24,6 +24,47 @@ func parseTestFile(name string) (*html.Node, error) {
 	return html.Parse(f)
 }
 
+func TestAttrVal(t *testing.T) {
+	e := &html.Node{
+		Type:     html.ElementNode,
+		DataAtom: atom.Div,
+		Data:     "div",
+		Attr: []html.Attribute{
+			html.Attribute{
+				Key: "id",
+				Val: "test",
+			},
+		},
+	}
+	if AttrVal(e, "id") != "test" {
+		t.Errorf("Expected value \"test\" for attribute \"id\", got \"%s\" instead", AttrVal(e, "id"))
+	}
+	if AttrVal(e, "class") != "" {
+		t.Error("AttrVal returned nonempty string for unavailable attribute")
+	}
+}
+
+func TestHasAttr(t *testing.T) {
+	e := &html.Node{
+		Type:     html.ElementNode,
+		DataAtom: atom.Div,
+		Data:     "div",
+		Attr: []html.Attribute{
+			html.Attribute{
+				Key: "id",
+				Val: "test",
+			},
+		},
+	}
+
+	if !HasAttr(e, "id") {
+		t.Error("Element has an attr \"id\", but HasAttr returns false.")
+	}
+	if HasAttr(e, "class") {
+		t.Error("Element hasn't an attr \"class\", but HasAttr returns true.")
+	}
+}
+
 func TestMatchAttrs(t *testing.T) {
 
 	nodeattr := make([]html.Attribute, 0, 2)
@@ -60,7 +101,7 @@ func TestNextElementSibling(t *testing.T) {
 	}
 	ul := ElementByID(root, testID)
 	if ul == nil {
-		t.Errorf("No Element found with id \"%s\"!", testID)
+		t.Fatalf("No Element found with id \"%s\"!", testID)
 	}
 	var li [3]*html.Node
 
@@ -78,6 +119,11 @@ func TestNextElementSibling(t *testing.T) {
 		if text.Data != expect {
 			t.Errorf("Expected \"%s\", got \"%s\"", expect, text.Data)
 		}
+	}
+
+	solitude := new(html.Node)
+	if NextElementSibling(solitude) != nil {
+		t.Error("Unexpected non-nil return value")
 	}
 }
 
@@ -114,6 +160,11 @@ func TestPrevElementSibling(t *testing.T) {
 	if AttrVal(prev, "href") != expectedHref {
 		t.Fatalf("Expected \"%s\", got \"%s\"", expectedHref, AttrVal(prev, "href"))
 	}
+
+	solitude := new(html.Node)
+	if PrevElementSibling(solitude) != nil {
+		t.Error("Unexpected non-nil return value")
+	}
 }
 
 func TestElementsByAttrMatch(t *testing.T) {
@@ -141,6 +192,25 @@ func TestElementsByAttrMatch(t *testing.T) {
 		if text.Data != expect {
 			t.Errorf("Expected \"%s\", got \"%s\"", expect, text.Data)
 		}
+	}
+}
+
+func TestElementsByTag(t *testing.T) {
+	const testDoc = "by_tag.html"
+
+	root, err := parseTestFile(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := ElementsByTag(root, atom.P)
+	if len(p) != 4 {
+		t.Errorf("Expected %d \"p\" elements, got %d", 4, len(p))
+	}
+
+	pAndDiv := ElementsByTag(root, atom.P, atom.Div)
+	if len(pAndDiv) != 8 {
+		t.Errorf("Expected %d \"p\" elements, got %d", 8, len(pAndDiv))
 	}
 }
 
