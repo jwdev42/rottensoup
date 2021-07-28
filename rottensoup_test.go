@@ -56,7 +56,7 @@ func TestNextElementSibling(t *testing.T) {
 
 	root, err := parseTestFile(testDoc)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	ul := ElementByID(root, testID)
 	if ul == nil {
@@ -81,6 +81,41 @@ func TestNextElementSibling(t *testing.T) {
 	}
 }
 
+func TestPrevElementSibling(t *testing.T) {
+	const testDoc = "test.html"
+	const testID = "pre2"
+
+	root, err := parseTestFile(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e := ElementByID(root, testID)
+	if e == nil {
+		t.Fatal("No start element found for testing")
+	}
+
+	expectTag := func(n *html.Node, tag atom.Atom) {
+		if n.DataAtom != tag {
+			t.Fatalf("Previous sibling: Expected node of tag \"%s\", got tag \"%s\"", tag.String(), n.DataAtom.String())
+		}
+	}
+
+	prev := PrevElementSibling(e)
+	if prev == nil {
+		t.Fatal("No previous sibling found")
+	}
+
+	expectTag(prev, atom.Br)
+	prev = PrevElementSibling(prev)
+	expectTag(prev, atom.A)
+
+	const expectedHref = "https://google.com"
+	if AttrVal(prev, "href") != expectedHref {
+		t.Fatalf("Expected \"%s\", got \"%s\"", expectedHref, AttrVal(prev, "href"))
+	}
+}
+
 func TestElementsByAttrMatch(t *testing.T) {
 	const matches = 4
 	const testDoc = "attr_match.html"
@@ -89,7 +124,7 @@ func TestElementsByAttrMatch(t *testing.T) {
 
 	root, err := parseTestFile(testDoc)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res := ElementsByAttrMatch(root, "class", search)
@@ -107,4 +142,42 @@ func TestElementsByAttrMatch(t *testing.T) {
 			t.Errorf("Expected \"%s\", got \"%s\"", expect, text.Data)
 		}
 	}
+}
+
+func TestNextSiblingByTag(t *testing.T) {
+	const testDoc = "test.html"
+	const testID = "TestNextSiblingByTag"
+
+	root, err := parseTestFile(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent := ElementByID(root, testID)
+
+	expect := func(start *html.Node, key, val string, tag ...atom.Atom) {
+		res := NextSiblingByTag(start, tag...)
+		if res == nil {
+			t.Error("Did not find a matching sibling element")
+			return
+		}
+		found := false
+		for _, attr := range res.Attr {
+			if attr.Namespace == "" && attr.Key == key {
+				found = true
+				if attr.Val != val {
+					t.Errorf("Expected \"%s\" for attribute \"%s\", got \"%s\"", val, key, attr.Val)
+					return
+				}
+			}
+		}
+		if !found {
+			t.Errorf("Did not find a matching sibling element with an attribute \"%s\" of value \"%s\"", key, val)
+		}
+	}
+
+	expect(parent.FirstChild, "href", "https://example.net", atom.A)
+	expect(parent.FirstChild, "id", "pre1", atom.Pre)
+	expect(parent.FirstChild, "id", "pre1", atom.A, atom.Pre)
+	expect(parent.FirstChild, "id", "pre1", atom.Pre, atom.A)
+	expect(parent.FirstChild, "id", "StartTestNextSiblingByTag", atom.Pre, atom.A, atom.P)
 }

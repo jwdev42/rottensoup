@@ -147,16 +147,11 @@ func MatchAttrs(n *html.Node, attr ...html.Attribute) bool {
 	return true
 }
 
-//Returns the node's next sibling which tag matches tag. Returns nil if no such node was found.
-func NextSiblingByTag(n *html.Node, tag atom.Atom) *html.Node {
-	sibl := n.NextSibling
-	if sibl == nil {
-		return nil
-	}
-	if sibl.DataAtom == tag {
-		return sibl
-	}
-	return NextSiblingByTag(sibl, tag)
+//Returns the node's next sibling where at least one of the given tags match. Returns nil if no such node was found.
+func NextSiblingByTag(n *html.Node, tag ...atom.Atom) *html.Node {
+	var node *html.Node
+	nav.Siblings(n, false, cond.MatchTag(&node, tag...), nil)
+	return node
 }
 
 //Returns the node's next sibling that is an element. Returns nil if no such element was found.
@@ -169,4 +164,16 @@ func NextElementSibling(n *html.Node) *html.Node {
 		return sibl
 	}
 	return NextElementSibling(sibl)
+}
+
+//Returns the node's next previous sibling that is an element. Returns nil if no such element was found.
+func PrevElementSibling(n *html.Node) *html.Node {
+	sibl := n.PrevSibling
+	if sibl == nil {
+		return nil
+	}
+	if sibl.Type == html.ElementNode {
+		return sibl
+	}
+	return PrevElementSibling(sibl)
 }

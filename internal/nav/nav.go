@@ -1,3 +1,5 @@
+//This file is part of rottensoup ©2021 Jörg Walter
+
 package nav
 
 import (
