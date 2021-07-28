@@ -144,6 +144,51 @@ func TestElementsByAttrMatch(t *testing.T) {
 	}
 }
 
+func TestElementsByTagAndAttr(t *testing.T) {
+	const testDoc = "by_tag_and_attr.html"
+
+	root, err := parseTestFile(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	attrs := []html.Attribute{
+		html.Attribute{Key: "class", Val: "cell"},
+		html.Attribute{Key: "lang", Val: "de"},
+		html.Attribute{Key: "title", Val: "test"},
+	}
+
+	c1 := ElementsByTagAndAttr(root, atom.Td, attrs[0])
+	c2 := ElementsByTagAndAttr(root, atom.Td, attrs[0], attrs[1])
+	c3 := ElementsByTagAndAttr(root, atom.Td, attrs...)
+
+	verifyCells := func(nodes []*html.Node, offset, length int) {
+		if len(nodes) != length {
+			t.Errorf("Invalid result length: Expected %d, got %d", length, len(nodes))
+			return
+		}
+		for i, v := range nodes {
+			cellID := i + 1 + offset
+			if v.DataAtom != atom.Td {
+				t.Errorf("Tag mismatch in table cell %d: Expected \"%s\", got \"%s\"", cellID, atom.Td.String(), v.DataAtom.String())
+				continue
+			}
+			text := FirstNodeByType(v, html.TextNode)
+			if text == nil {
+				t.Errorf("No text node found in table cell %d", cellID)
+				continue
+			}
+			if text.Data != fmt.Sprintf("%d", cellID) {
+				t.Errorf("Text mismatch in table cell %d: Expected \"%d\", got \"%s\"", cellID, cellID, text.Data)
+			}
+		}
+	}
+
+	verifyCells(c1, 0, 16) //c1 must match cells 1 to 16
+	verifyCells(c2, 4, 8)  //c2 must match cells 5 to 12
+	verifyCells(c3, 8, 4)  //c3 must match cells 9 to 12
+}
+
 func TestNextSiblingByTag(t *testing.T) {
 	const testDoc = "test.html"
 	const testID = "TestNextSiblingByTag"
