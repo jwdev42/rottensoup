@@ -1,5 +1,6 @@
 //This file is part of rottensoup ©2021 Jörg Walter
 
+//Collection of functions that help navigating through an html5 DOM tree.
 package rottensoup
 
 import (
@@ -10,17 +11,19 @@ import (
 	"regexp"
 )
 
-//Returns the attribute value for node n's attribute referenced by key key. Returns an empty string if no such attribute exists.
-func AttrVal(n *html.Node, key string) string {
+//Returns the corresponding attribute value if node n has an attribute of the given namespace and key.
+//If no such attribute exists, an empty string will be returned.
+func AttrVal(n *html.Node, namespace, key string) string {
 	for _, attr := range n.Attr {
-		if attr.Key == key {
+		if attr.Namespace == namespace && attr.Key == key {
 			return attr.Val
 		}
 	}
 	return ""
 }
 
-//Returns the first child node of n that has an id attribute that matches the given id string. Returns nil if no such node exists.
+//Executes depth-first search on all child nodes of n, returns the first element found with the given id.
+//If no suitable element was found, nil will be returned.
 func ElementByID(n *html.Node, id string) *html.Node {
 	var elem *html.Node
 	byID := func(n *html.Node) bool {
@@ -36,7 +39,7 @@ func ElementByID(n *html.Node, id string) *html.Node {
 	return elem
 }
 
-//Returns the first child node of n that matches NodeType t or nil if no such node was found.
+//Executes depth-first search on all child nodes of n, returns the first node that matches NodeType t or nil if no such node was found.
 func FirstNodeByType(n *html.Node, t html.NodeType) *html.Node {
 	var match *html.Node
 	pre := func(n *html.Node) bool {
@@ -50,13 +53,20 @@ func FirstNodeByType(n *html.Node, t html.NodeType) *html.Node {
 	return match
 }
 
-func ElementsByAttrMatch(n *html.Node, key string, val *regexp.Regexp) []*html.Node {
+//Executes depth-first search on all child nodes of n, returns a slice that contains all elements that have an attribute
+//where namespace and key are equal to the function args and where the attribute's val matches the given regular expression.
+//If no proper element was found, nil will be returned.
+func ElementsByAttrMatch(n *html.Node, namespace, key string, val *regexp.Regexp) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
-	nav.DFS(n, cond.AttrValByRegex(&nodes, key, val), nil)
+	nav.DFS(n, cond.AttrValByRegex(&nodes, namespace, key, val), nil)
+	if len(nodes) == 0 {
+		return nil
+	}
 	return nodes
 }
 
-//Returns the first child node of n that matches at least one of the given tags.
+//Executes depth-first search on all child nodes of n and returns the first element that matches at least one of the given tags.
+//Returns nil if no such element was found.
 func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
 	var node *html.Node
 	pre := func(n *html.Node) bool {
@@ -75,7 +85,8 @@ func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
 	return node
 }
 
-//Returns all child nodes of n that match at least one of the given tags.
+//Executes depth-first search on all child nodes of n and returns all elements that match at least one of the given tags.
+//Returns nil if no such element was found.
 func ElementsByTag(n *html.Node, tag ...atom.Atom) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
 	pre := func(n *html.Node) bool {
@@ -88,10 +99,14 @@ func ElementsByTag(n *html.Node, tag ...atom.Atom) []*html.Node {
 		return true
 	}
 	nav.DFS(n, pre, nil)
+	if len(nodes) == 0 {
+		return nil
+	}
 	return nodes
 }
 
-//Returns all child nodes of n that match tag tag and contain all attributes in attr.
+//Executes depth-first search on all child nodes of n and returns all elements that match
+//the given tag and contain all given attributes. Returns nil if no matches were found.
 func ElementsByTagAndAttr(n *html.Node, tag atom.Atom, attr ...html.Attribute) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
 	pre := func(n *html.Node) bool {
@@ -116,17 +131,17 @@ func ElementsByTagAndAttr(n *html.Node, tag atom.Atom, attr ...html.Attribute) [
 	return nodes
 }
 
-//Returns true if Node n has an attribute with key key, returns false otherwise.
-func HasAttr(n *html.Node, key string) bool {
+//Returns true if node n has an attribute that matches namespace and key, returns false otherwise.
+func HasAttr(n *html.Node, namespace, key string) bool {
 	for _, attr := range n.Attr {
-		if attr.Key == key {
+		if attr.Namespace == namespace && attr.Key == key {
 			return true
 		}
 	}
 	return false
 }
 
-//Returns true if Node n contains all attributes that are passed to attr, returns false otherwise.
+//Returns true if node n contains all given attributes, returns false otherwise.
 func MatchAttrs(n *html.Node, attr ...html.Attribute) bool {
 	attrs_to_match := make(map[html.Attribute]bool)
 	for _, a := range attr {

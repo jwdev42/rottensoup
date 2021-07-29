@@ -36,10 +36,10 @@ func TestAttrVal(t *testing.T) {
 			},
 		},
 	}
-	if AttrVal(e, "id") != "test" {
-		t.Errorf("Expected value \"test\" for attribute \"id\", got \"%s\" instead", AttrVal(e, "id"))
+	if AttrVal(e, "", "id") != "test" {
+		t.Errorf("Expected value \"test\" for attribute \"id\", got \"%s\" instead", AttrVal(e, "", "id"))
 	}
-	if AttrVal(e, "class") != "" {
+	if AttrVal(e, "", "class") != "" {
 		t.Error("AttrVal returned nonempty string for unavailable attribute")
 	}
 }
@@ -57,10 +57,10 @@ func TestHasAttr(t *testing.T) {
 		},
 	}
 
-	if !HasAttr(e, "id") {
+	if !HasAttr(e, "", "id") {
 		t.Error("Element has an attr \"id\", but HasAttr returns false.")
 	}
-	if HasAttr(e, "class") {
+	if HasAttr(e, "", "class") {
 		t.Error("Element hasn't an attr \"class\", but HasAttr returns true.")
 	}
 }
@@ -157,8 +157,8 @@ func TestPrevElementSibling(t *testing.T) {
 	expectTag(prev, atom.A)
 
 	const expectedHref = "https://google.com"
-	if AttrVal(prev, "href") != expectedHref {
-		t.Fatalf("Expected \"%s\", got \"%s\"", expectedHref, AttrVal(prev, "href"))
+	if AttrVal(prev, "", "href") != expectedHref {
+		t.Fatalf("Expected \"%s\", got \"%s\"", expectedHref, AttrVal(prev, "", "href"))
 	}
 
 	solitude := new(html.Node)
@@ -178,7 +178,7 @@ func TestElementsByAttrMatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res := ElementsByAttrMatch(root, "class", search)
+	res := ElementsByAttrMatch(root, "", "class", search)
 	if len(res) != matches {
 		t.Errorf("Expected %d matches, got %d", matches, len(res))
 	}
