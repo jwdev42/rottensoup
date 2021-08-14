@@ -79,6 +79,8 @@ func FirstElementByAttr(n *html.Node, attr ...html.Attribute) *html.Node {
 	return nodes[0]
 }
 
+//Executes depth-first search on all child nodes of n and returns the first element that is a member of all given classes.
+//Returns nil if no such element was found.
 func FirstElementByClassName(n *html.Node, name ...string) *html.Node {
 	nodes := make([]*html.Node, 0, 1)
 	nav.DFS(n, cond.MatchClassNames(&nodes, true, name...), nil)
@@ -110,6 +112,8 @@ func FirstElementByTagAndAttr(n *html.Node, tag atom.Atom, attr ...html.Attribut
 	return nil
 }
 
+//Executes depth-first search on all child nodes of n and returns all elements that are a member of all given classes.
+//Returns nil if no such elements were found.
 func ElementsByClassName(n *html.Node, name ...string) []*html.Node {
 	nodes := make([]*html.Node, 0, 10)
 	nav.DFS(n, cond.MatchClassNames(&nodes, false, name...), nil)
