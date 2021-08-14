@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"regexp"
+	"strings"
 )
 
 //Returns a function that collects all nodes who have an attribute that matches key and where its value matches the regex val.
@@ -40,6 +41,34 @@ func MatchAttrs(nodes *[]*html.Node, first bool, attr ...html.Attribute) func(*h
 		*nodes = append(*nodes, n)
 		if first {
 			return false
+		}
+		return true
+	}
+}
+
+func MatchClassNames(nodes *[]*html.Node, first bool, name ...string) func(*html.Node) bool {
+	return func(n *html.Node) bool {
+		for _, a := range n.Attr {
+			if a.Namespace == "" && a.Key == "class" {
+				attrNames := strings.Split(a.Val, " ")
+				for _, searchName := range name {
+					found := false
+					for _, attrName := range attrNames {
+						if searchName == attrName {
+							found = true
+							break
+						}
+					}
+					if !found {
+						return true
+					}
+				}
+				*nodes = append(*nodes, n)
+				if first {
+					return false
+				}
+				break
+			}
 		}
 		return true
 	}

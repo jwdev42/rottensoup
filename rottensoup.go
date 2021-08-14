@@ -45,6 +45,17 @@ func FirstNodeByType(n *html.Node, t html.NodeType) *html.Node {
 	return match
 }
 
+//Executes depth-first search on all child nodes of n and returns all elements that
+//contain all given attributes. Returns nil if no matches were found.
+func ElementsByAttr(n *html.Node, attr ...html.Attribute) []*html.Node {
+	nodes := make([]*html.Node, 0, 10)
+	nav.DFS(n, cond.TypeFilter(html.ElementNode, cond.MatchAttrs(&nodes, false, attr...)), nil)
+	if len(nodes) == 0 {
+		return nil
+	}
+	return nodes
+}
+
 //Executes depth-first search on all child nodes of n, returns a slice that contains all elements that have an attribute
 //where namespace and key are equal to the function args and where the attribute's val matches the given regular expression.
 //If no proper element was found, nil will be returned.
@@ -57,6 +68,26 @@ func ElementsByAttrMatch(n *html.Node, namespace, key string, val *regexp.Regexp
 	return nodes
 }
 
+//Executes depth-first search on all child nodes of n and returns the first element that
+//contains all given attributes. Returns nil if no match was found.
+func FirstElementByAttr(n *html.Node, attr ...html.Attribute) *html.Node {
+	nodes := make([]*html.Node, 0, 1)
+	nav.DFS(n, cond.TypeFilter(html.ElementNode, cond.MatchAttrs(&nodes, true, attr...)), nil)
+	if len(nodes) < 1 {
+		return nil
+	}
+	return nodes[0]
+}
+
+func FirstElementByClassName(n *html.Node, name ...string) *html.Node {
+	nodes := make([]*html.Node, 0, 1)
+	nav.DFS(n, cond.MatchClassNames(&nodes, true, name...), nil)
+	if len(nodes) < 1 {
+		return nil
+	}
+	return nodes[0]
+}
+
 //Executes depth-first search on all child nodes of n and returns the first element that matches at least one of the given tags.
 //Returns nil if no such element was found.
 func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
@@ -66,6 +97,26 @@ func FirstElementByTag(n *html.Node, tag ...atom.Atom) *html.Node {
 		return nodes[0]
 	}
 	return nil
+}
+
+//Executes depth-first search on all child nodes of n and returns the first element that matches
+//the given tag and contains all given attributes. Returns nil if no match was found.
+func FirstElementByTagAndAttr(n *html.Node, tag atom.Atom, attr ...html.Attribute) *html.Node {
+	nodes := make([]*html.Node, 0, 1)
+	nav.DFS(n, cond.TypeFilter(html.ElementNode, cond.TagFilter(tag, cond.MatchAttrs(&nodes, true, attr...))), nil)
+	if len(nodes) > 0 {
+		return nodes[0]
+	}
+	return nil
+}
+
+func ElementsByClassName(n *html.Node, name ...string) []*html.Node {
+	nodes := make([]*html.Node, 0, 10)
+	nav.DFS(n, cond.MatchClassNames(&nodes, false, name...), nil)
+	if len(nodes) == 0 {
+		return nil
+	}
+	return nodes
 }
 
 //Executes depth-first search on all child nodes of n and returns all elements that match at least one of the given tags.

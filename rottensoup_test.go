@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -167,6 +168,67 @@ func TestPrevElementSibling(t *testing.T) {
 	}
 }
 
+func TestElementByID(t *testing.T) {
+	const testDoc = "test.html"
+
+	root, err := parseTestFile(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exists := ElementByID(root, "siblings")
+	if exists == nil {
+		t.Error("ElementByID didn't find existing element")
+	}
+	doesnotexist := ElementByID(root, "imnothere")
+	if doesnotexist != nil {
+		t.Error("ElementByID returned an element that shouldn't exist")
+	}
+}
+
+func TestElementsByAttr(t *testing.T) {
+	const testDoc = "by_tag_and_attr.html"
+
+	root, err := parseTestFile(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	attrs := []html.Attribute{
+		html.Attribute{Key: "class", Val: "cell"},
+		html.Attribute{Key: "lang", Val: "de"},
+		html.Attribute{Key: "title", Val: "test"},
+	}
+	invalidAttr := html.Attribute{Key: "foo", Val: "bar"}
+
+	c1 := ElementsByAttr(root, attrs[0])
+	c2 := ElementsByAttr(root, attrs[0], attrs[1])
+	c3 := ElementsByAttr(root, attrs...)
+
+	if i := len(c1); i != 19 {
+		t.Errorf("c1: Expected length of 19, got %d", i)
+	}
+	if i := len(c2); i != 10 {
+		t.Errorf("c1: Expected length of 10, got %d", i)
+	}
+	if i := len(c3); i != 5 {
+		t.Errorf("c1: Expected length of 5, got %d", i)
+	}
+
+	if c1[0] != FirstElementByAttr(root, attrs[0]) {
+		t.Errorf("FirstElementByAttr returns wrong element")
+	}
+
+	if doesnotexist := ElementsByAttr(root, invalidAttr); doesnotexist != nil {
+		t.Error("ElementsByAttr returned an element that should not exist")
+	}
+
+	if doesnotexist := FirstElementByAttr(root, invalidAttr); doesnotexist != nil {
+		t.Error("FirstElementByAttr returned an element that should not exist")
+	}
+
+}
+
 func TestElementsByAttrMatch(t *testing.T) {
 	const matches = 4
 	const testDoc = "attr_match.html"
@@ -193,6 +255,57 @@ func TestElementsByAttrMatch(t *testing.T) {
 			t.Errorf("Expected \"%s\", got \"%s\"", expect, text.Data)
 		}
 	}
+
+	if invalid := ElementsByAttrMatch(root, "", "class", regexp.MustCompile("imnothere")); invalid != nil {
+		t.Error("Expected no match")
+	}
+
+}
+
+func TestElementsByClassName(t *testing.T) {
+	const testDoc = "classnames.html"
+
+	root, err := parseTestFile(testDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	numInChildText := func(n *html.Node, num int) bool {
+		textNode := FirstNodeByType(n, html.TextNode)
+		if textNode == nil {
+			panic("No text node found")
+		}
+		return strings.Contains(textNode.Data, fmt.Sprintf("%d", num))
+	}
+
+	testClassValues := func(prefix string, expectedElements int, nums ...int) {
+		classes := make([]string, len(nums))
+		for i, num := range nums {
+			classes[i] = fmt.Sprintf("%s%d", prefix, num)
+		}
+		elems := ElementsByClassName(root, classes...)
+		first := FirstElementByClassName(root, classes...)
+		if elems != nil && first != elems[0] || elems == nil && first != nil {
+			t.Error("FirstElementByClassName returned the wrong element")
+		}
+		if l := len(elems); l != expectedElements {
+			t.Errorf("ElementsByClassName should have returned %d elements, it returned %d elements instead", expectedElements, l)
+		}
+		for _, e := range elems {
+			for _, i := range nums {
+				if !numInChildText(e, i) {
+					t.Errorf("ElementsByClassName returned an element that should be a member of class \"%s\", but isn't", classes[i])
+				}
+			}
+		}
+	}
+	testClassValues("class", 0, 0)
+	testClassValues("class", 4, 1)
+	testClassValues("class", 3, 2)
+	testClassValues("class", 4, 3)
+	testClassValues("class", 1, 4)
+	testClassValues("class", 2, 1, 2, 3)
+	testClassValues("class", 1, 1, 2, 3, 4)
 }
 
 func TestElementsByTag(t *testing.T) {
@@ -203,15 +316,29 @@ func TestElementsByTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := ElementsByTag(root, atom.P)
-	if len(p) != 4 {
-		t.Errorf("Expected %d \"p\" elements, got %d", 4, len(p))
+	test := func(expect int, tag ...atom.Atom) {
+		tags := ElementsByTag(root, tag...)
+		if tags != nil {
+			if len(tags) != expect {
+				t.Errorf("Expected %d elements, got %d", expect, len(tags))
+			}
+			if FirstElementByTag(root, tag...) != tags[0] {
+				t.Error("FirstElementByTag has wrong element")
+			}
+		} else {
+			if expect != 0 {
+				t.Error("Expected nil but got a non-nil result")
+			}
+			if FirstElementByTag(root, tag...) != nil {
+				t.Error("FirstElementByTag was expected to be nil")
+			}
+		}
 	}
 
-	pAndDiv := ElementsByTag(root, atom.P, atom.Div)
-	if len(pAndDiv) != 8 {
-		t.Errorf("Expected %d \"p\" elements, got %d", 8, len(pAndDiv))
-	}
+	test(0, atom.Autocomplete)
+	test(4, atom.P)
+	test(8, atom.P, atom.Div)
+
 }
 
 func TestElementsByTagAndAttr(t *testing.T) {
@@ -257,6 +384,17 @@ func TestElementsByTagAndAttr(t *testing.T) {
 	verifyCells(c1, 0, 16) //c1 must match cells 1 to 16
 	verifyCells(c2, 4, 8)  //c2 must match cells 5 to 12
 	verifyCells(c3, 8, 4)  //c3 must match cells 9 to 12
+
+	invalid := ElementsByTagAndAttr(root, atom.Td, html.Attribute{Key: "foo", Val: "bar"})
+	if invalid != nil {
+		t.Error("Expected return value nil")
+	}
+	if FirstElementByTagAndAttr(root, atom.Td, html.Attribute{Key: "foo", Val: "bar"}) != nil {
+		t.Error("Expected return value nil")
+	}
+	if c1[0] != FirstElementByTagAndAttr(root, atom.Td, attrs[0]) {
+		t.Errorf("FirstElementByTagAndAttr returns wrong element")
+	}
 }
 
 func TestNextSiblingByTag(t *testing.T) {
@@ -267,6 +405,7 @@ func TestNextSiblingByTag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	parent := ElementByID(root, testID)
 
 	expect := func(start *html.Node, key, val string, tag ...atom.Atom) {
@@ -288,6 +427,10 @@ func TestNextSiblingByTag(t *testing.T) {
 		if !found {
 			t.Errorf("Did not find a matching sibling element with an attribute \"%s\" of value \"%s\"", key, val)
 		}
+	}
+
+	if nothing := NextSiblingByTag(parent.FirstChild, atom.Table); nothing != nil {
+		t.Error("Expected return value nil")
 	}
 
 	expect(parent.FirstChild, "href", "https://example.net", atom.A)
